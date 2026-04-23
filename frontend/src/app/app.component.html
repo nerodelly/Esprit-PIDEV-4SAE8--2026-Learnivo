@@ -1,0 +1,14 @@
+@if (!isAdminRoute) {
+<app-navbar></app-navbar>
+}
+
+<main [class.min-h-screen]="!isAdminRoute">
+  <router-outlet></router-outlet>
+</main>
+
+@if (!isAdminRoute) {
+<app-footer></app-footer>
+}
+
+<!-- Global notification toasts (real-time claims notifications) -->
+<app-notification-toast></app-notification-toast>

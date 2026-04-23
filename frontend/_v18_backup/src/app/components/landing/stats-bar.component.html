@@ -1,0 +1,12 @@
+<section class="bg-teal-600">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-around gap-6 px-4 py-6 lg:px-8">
+        @for (stat of stats; track stat.label) {
+        <div class="flex flex-col items-center gap-1">
+            <span class="text-2xl font-bold text-white md:text-3xl">
+                {{ stat.value }}
+            </span>
+            <span class="text-xs text-white/80">{{ stat.label }}</span>
+        </div>
+        }
+    </div>
+</section>

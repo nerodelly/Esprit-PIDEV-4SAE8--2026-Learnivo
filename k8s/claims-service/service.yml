@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: claims-service
+  namespace: learnivo
+spec:
+  selector:
+    app: claims-service
+  ports:
+    - port: 8088
+      targetPort: 8088

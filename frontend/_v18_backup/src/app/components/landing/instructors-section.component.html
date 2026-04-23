@@ -1,0 +1,23 @@
+<section class="bg-background">
+    <div class="mx-auto max-w-7xl px-4 py-12 lg:px-8">
+        <h2 class="text-xl font-bold text-foreground md:text-2xl">
+            Our Instructors
+        </h2>
+        <p class="mt-2 text-sm text-muted-foreground">
+            At Jungle in English, our top-notch instructors are passionate about guiding you.
+            Learn from the best and grow your confidence.
+        </p>
+
+        <div class="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            @for (inst of instructors; track inst.name) {
+            <div class="flex flex-col items-center gap-3 text-center">
+                <div class="relative h-32 w-32 overflow-hidden rounded-full">
+                    <img [src]="inst.image" [alt]="inst.name" class="object-cover h-full w-full" />
+                </div>
+                <h3 class="text-sm font-semibold text-foreground">{{ inst.name }}</h3>
+                <p class="text-xs text-muted-foreground">{{ inst.title }}</p>
+            </div>
+            }
+        </div>
+    </div>
+</section>

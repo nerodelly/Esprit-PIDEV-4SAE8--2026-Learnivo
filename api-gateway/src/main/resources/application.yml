@@ -1,0 +1,167 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    loadbalancer:
+      cache:
+        ttl: 5s
+    gateway:
+      # Configuration CORS globale pour Angular (localhost:4200)
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:4200"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+
+      routes:
+        # Routes vers class-service
+        - id: class-service-classes
+          uri: lb://class-service
+          predicates:
+            - Path=/api/classes/**
+
+        # Routes vers competition-service
+        - id: competition-service-competitions
+          uri: lb://competition-service
+          predicates:
+            - Path=/api/competitions/**
+
+        - id: competition-service-classements
+          uri: lb://competition-service
+          predicates:
+            - Path=/api/classements/**
+
+        # Routes vers course-service
+        - id: course-service-courses
+          uri: lb://course-service
+          predicates:
+            - Path=/api/courses/**
+
+        - id: course-service-uploads
+          uri: lb://course-service
+          predicates:
+            - Path=/uploads/**
+
+        # Routes vers quiz-service
+        - id: quiz-service-quizzes
+          uri: lb://quiz-service
+          predicates:
+            - Path=/api/quizzes/**
+
+        # Routes vers claims-service (Node.js Mod)
+        - id: claims-service
+          uri: lb://CLAIMS-SERVICE
+          predicates:
+            - Path=/api/claims/**
+
+        # Routes vers user-service (Mohamed)
+        - id: user-service-users
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+
+        - id: user-service-auth
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/**
+
+        - id: user-service-reclamations
+          uri: lb://user-service
+          predicates:
+            - Path=/api/tickets/**
+
+        # Routes vers club-event-service (Iyadh)
+        - id: club-event-service-clubs
+          uri: lb://club-event-service
+          predicates:
+            - Path=/api/clubs/**
+
+        - id: club-event-service-events
+          uri: lb://club-event-service
+          predicates:
+            - Path=/api/events/**
+
+        - id: club-event-service-registrations
+          uri: lb://club-event-service
+          predicates:
+            - Path=/api/event-registrations/**
+
+        - id: club-event-service-students
+          uri: lb://club-event-service
+          predicates:
+            - Path=/api/students/**
+
+        - id: club-event-service-professors
+          uri: lb://club-event-service
+          predicates:
+            - Path=/api/professors/**
+
+        - id: club-event-service-memberships
+          uri: lb://club-event-service
+          predicates:
+            - Path=/api/club-memberships/**
+
+        # Routes vers imed-service (Internships & Certificates)
+        - id: imed-service-internships
+          uri: lb://imed-service
+          predicates:
+            - Path=/api/internships/**
+
+        - id: imed-service-offers
+          uri: lb://imed-service
+          predicates:
+            - Path=/api/internship-offers/**
+
+        - id: imed-service-applications
+          uri: lb://imed-service
+          predicates:
+            - Path=/api/internship-applications/**
+
+        - id: imed-service-documents
+          uri: lb://imed-service
+          predicates:
+            - Path=/api/internship-documents/**
+
+        - id: imed-service-evaluations
+          uri: lb://imed-service
+          predicates:
+            - Path=/api/internship-evaluations/**
+
+        - id: imed-service-chat
+          uri: lb://imed-service
+          predicates:
+            - Path=/api/chat/**
+
+        - id: imed-service-certificates
+          uri: lb://imed-service
+          predicates:
+            - Path=/api/certificates/**
+
+        - id: imed-service-uploads
+          uri: lb://imed-service
+          predicates:
+            - Path=/imed-uploads/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

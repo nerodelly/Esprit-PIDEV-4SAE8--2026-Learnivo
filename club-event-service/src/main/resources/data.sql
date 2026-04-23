@@ -1,0 +1,14 @@
+-- DISABLED: Static demo data has been removed.
+-- Users are now managed by the shared user-service in mohamed-work.
+-- 
+-- To add test data:
+-- 1. Create users via the user-service API (/api/users)
+-- 2. Then create professors/students with references to those user IDs
+--
+-- Original demo data:
+-- INSERT IGNORE INTO professors (id, name, email) VALUES (1, 'Prof. Démo', 'prof.demo@learnivo.com');
+-- INSERT IGNORE INTO clubs (id, name, description, status, professor_id) VALUES (1, 'Club Démo', 'Club de démonstration pour tester l''affichage.', 'ACTIVE', 1);
+-- INSERT IGNORE INTO events (id, title, description, start_time, end_time, location, status, created_at) VALUES
+-- (1, 'Événement de démonstration', 'Premier événement pour vérifier l''affichage sur le front office.', DATE_ADD(NOW(), INTERVAL 1 DAY), DATE_ADD(DATE_ADD(NOW(), INTERVAL 1 DAY), INTERVAL 2 HOUR), 'Campus principal', 'OPEN', NOW()),
+-- (2, 'Atelier pratique', 'Session de travaux pratiques.', DATE_ADD(NOW(), INTERVAL 3 DAY), DATE_ADD(DATE_ADD(NOW(), INTERVAL 3 DAY), INTERVAL 3 HOUR), 'Salle 101', 'OPEN', NOW());
+

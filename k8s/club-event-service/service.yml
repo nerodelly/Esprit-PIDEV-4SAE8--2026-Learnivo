@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: club-event-service
+  namespace: learnivo
+spec:
+  selector:
+    app: club-event-service
+  ports:
+    - port: 8087
+      targetPort: 8087

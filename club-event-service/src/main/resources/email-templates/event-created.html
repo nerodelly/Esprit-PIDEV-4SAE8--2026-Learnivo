@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nouvel événement</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(135deg, #6b4ce6 0%, #8b5cf6 100%);
+      color: #fff;
+      padding: 24px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    .content {
+      padding: 24px;
+    }
+    .event-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    .field {
+      margin-bottom: 14px;
+    }
+    .field-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+    .field-value {
+      color: #111827;
+      font-size: 0.95rem;
+    }
+    .footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      border-top: 1px solid #e5e7eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Nouvel événement créé</h1>
+    </div>
+    <div class="content">
+      <div class="event-title">%TITLE%</div>
+      <div class="field">
+        <div class="field-label">Description</div>
+        <div class="field-value">%DESCRIPTION%</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Date et heure de début</div>
+        <div class="field-value">%START%</div>
+      </div>
+      <div class="field">
+        <div class="field-label">Lieu</div>
+        <div class="field-value">%LOCATION%</div>
+      </div>
+    </div>
+    <div class="footer">
+      Learnivo — Notification automatique
+    </div>
+  </div>
+</body>
+</html>

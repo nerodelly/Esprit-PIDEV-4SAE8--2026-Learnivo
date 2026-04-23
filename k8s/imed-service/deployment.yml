@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imed-service
+  namespace: learnivo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: imed-service
+  template:
+    metadata:
+      labels:
+        app: imed-service
+    spec:
+      containers:
+        - name: imed-service
+          image: ghcr.io/nerodelly/imed-service:IMAGE_TAG
+          ports:
+            - containerPort: 8088
+          envFrom:
+            - configMapRef:
+                name: learnivo-config
+          env:
+            - name: EUREKA_SERVER_URL
+              value: http://eureka-service:8761/eureka/
+          volumeMounts:
+            - name: imed-data
+              mountPath: /data
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8088
+            initialDelaySeconds: 40
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8088
+            initialDelaySeconds: 80
+            periodSeconds: 20
+      volumes:
+        - name: imed-data
+          persistentVolumeClaim:
+            claimName: imed-h2-pvc

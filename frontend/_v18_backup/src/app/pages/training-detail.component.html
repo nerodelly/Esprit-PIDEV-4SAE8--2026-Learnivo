@@ -1,0 +1,67 @@
+@if (training()) {
+<div class="mx-auto max-w-7xl px-4 py-10 lg:px-8">
+    <h1 class="text-2xl font-bold text-foreground md:text-3xl">
+        {{ training().title }}
+    </h1>
+
+    <!-- Video Banner -->
+    <div class="relative mt-6 aspect-video max-w-4xl overflow-hidden rounded-lg">
+        <img [src]="training().banner" [alt]="training().title" class="object-cover h-full w-full" />
+        <div class="absolute inset-0 flex items-center justify-center">
+            <button
+                class="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-teal-600 shadow-lg transition-colors hover:bg-white">
+                <lucide-angular [img]="PlayIcon" class="h-7 w-7 fill-teal-600 text-teal-600"></lucide-angular>
+            </button>
+        </div>
+    </div>
+
+    <!-- Course Content Chapters -->
+    <div class="mt-10 max-w-3xl">
+        @for (chapter of training().chapters; track $index) {
+        <div class="border-b border-border">
+            <!-- Chapter Header -->
+            <button (click)="toggleChapter($index)" class="flex w-full items-center justify-between py-4 text-left">
+                <div>
+                    <span class="text-xs text-muted-foreground">
+                        Chapitre {{ chapter.number }}
+                    </span>
+                    <h3 class="text-base font-semibold text-foreground">{{ chapter.name }}</h3>
+                </div>
+                @if (expandedChapter() === $index) {
+                <lucide-angular [img]="ChevronDownIcon" class="h-5 w-5 text-muted-foreground"></lucide-angular>
+                } @else {
+                <lucide-angular [img]="ChevronRightIcon" class="h-5 w-5 text-muted-foreground"></lucide-angular>
+                }
+            </button>
+
+            <!-- Sections -->
+            @if (expandedChapter() === $index && chapter.sections.length > 0) {
+            <div class="flex flex-col gap-1 pb-4 pl-4">
+                @for (section of chapter.sections; track $index) {
+                <div class="flex items-center gap-3 rounded px-3 py-2 text-sm text-foreground hover:bg-muted">
+                    @if (section.completed) {
+                    <lucide-angular [img]="CheckSquareIcon" class="h-4 w-4 shrink-0 text-teal-600"></lucide-angular>
+                    } @else {
+                    <lucide-angular [img]="SquareIcon" class="h-4 w-4 shrink-0 text-border"></lucide-angular>
+                    }
+                    {{ section.name }}
+                </div>
+                }
+            </div>
+            }
+        </div>
+        }
+
+        <!-- Final Exam -->
+        <div class="border-b border-border py-4">
+            <div class="flex items-center gap-3">
+                <lucide-angular [img]="SquareIcon" class="h-4 w-4 text-border"></lucide-angular>
+                <div>
+                    <span class="text-xs text-muted-foreground">Examen</span>
+                    <h3 class="text-base font-semibold text-foreground">Final Exam</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+}

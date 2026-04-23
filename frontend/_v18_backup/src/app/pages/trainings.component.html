@@ -1,0 +1,104 @@
+<div class="mx-auto max-w-7xl px-4 py-10 lg:px-8">
+    <h1 class="text-2xl font-bold text-foreground md:text-3xl">
+        Search, learn & evolve
+    </h1>
+
+    <div class="mt-8 flex flex-col gap-8 lg:flex-row">
+        <!-- Sidebar Filters -->
+        <aside class="flex w-full flex-col gap-6 lg:w-64 lg:shrink-0">
+            <!-- Search -->
+            <div class="relative">
+                <lucide-angular [img]="SearchIcon"
+                    class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></lucide-angular>
+                <input type="text" placeholder="What's on your mind" [ngModel]="search()"
+                    (ngModelChange)="search.set($event)"
+                    class="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-teal-600" />
+            </div>
+
+            <!-- Type Filter -->
+            <div class="flex flex-col gap-2">
+                <h3 class="text-sm font-semibold text-foreground">Type</h3>
+                @for (type of types; track type) {
+                <label class="flex items-center gap-2 text-sm text-foreground">
+                    <input type="radio" name="type" [checked]="typeFilter() === type" (change)="typeFilter.set(type)"
+                        class="h-4 w-4 accent-teal-600" />
+                    {{ type }}
+                </label>
+                }
+            </div>
+
+            <!-- Level Filter -->
+            <div class="flex flex-col gap-2">
+                <h3 class="text-sm font-semibold text-foreground">Level</h3>
+                @for (level of levels; track level) {
+                <label class="flex items-center gap-2 text-sm text-foreground">
+                    <input type="checkbox" [checked]="levelFilters().includes(level)" (change)="toggleLevel(level)"
+                        class="h-4 w-4 accent-teal-600" />
+                    {{ level }}
+                </label>
+                }
+            </div>
+
+            <!-- Price Range -->
+            <div class="flex flex-col gap-2">
+                <h3 class="text-sm font-semibold text-foreground">Price</h3>
+                <input type="range" min="0" max="2000" [ngModel]="priceRange()" (ngModelChange)="priceRange.set($event)"
+                    class="accent-black" />
+                <p class="text-xs text-muted-foreground">Up to {{ priceRange() }} TND</p>
+            </div>
+
+            <button (click)="resetFilters()"
+                class="rounded-full bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black/90">
+                Apply filters
+            </button>
+        </aside>
+
+        <!-- Training List -->
+        <div class="flex flex-1 flex-col gap-6">
+            @if (filteredTrainings().length === 0) {
+            <p class="py-12 text-center text-sm text-muted-foreground">
+                No trainings found matching your criteria.
+            </p>
+            } @else {
+            @for (training of filteredTrainings(); track training.id) {
+            <div class="flex flex-col overflow-hidden rounded-lg border border-border bg-card sm:flex-row">
+                <div class="relative aspect-video sm:aspect-auto sm:w-64 lg:w-72 h-48 sm:h-auto">
+                    <img [src]="training.image" [alt]="training.title" class="object-cover h-full w-full" />
+                </div>
+                <div class="flex flex-1 flex-col gap-2 p-5">
+                    <span class="self-start rounded-full px-3 py-0.5 text-xs font-medium text-white"
+                        [ngClass]="training.type === 'Blended training' ? 'bg-orange-500' : 'bg-teal-600'">
+                        {{ training.type }}
+                    </span>
+                    <h3 class="text-base font-bold text-foreground line-clamp-2">{{ training.title }}</h3>
+                    <p class="text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                        {{ training.description }}
+                    </p>
+                    <div class="mt-auto flex items-end justify-between pt-2">
+                        <p class="text-xl font-bold text-foreground">
+                            {{ training.price }}
+                            <span class="text-xs font-normal text-muted-foreground"> TND</span>
+                        </p>
+                        <a [routerLink]="['/trainings', training.slug]"
+                            class="inline-flex items-center gap-1 rounded-full bg-teal-600 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-teal-600/90">
+                            <lucide-angular [img]="ArrowRightIcon" class="h-3 w-3"></lucide-angular>
+                            {{ training.action }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            }
+            }
+
+            @if (filteredTrainings().length > 0) {
+            <div class="mt-4 flex items-center justify-between">
+                <app-pagination [currentPage]="currentPage()" [totalPages]="7"
+                    (pageChange)="onPageChange($event)"></app-pagination>
+                <p class="text-xs text-muted-foreground">
+                    Page {{ currentPage() }} of 7
+                </p>
+            </div>
+            }
+        </div>
+    </div>
+</div>

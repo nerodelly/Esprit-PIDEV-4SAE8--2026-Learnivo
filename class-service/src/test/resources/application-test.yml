@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:class_testdb;DB_CLOSE_DELAY=-1;NON_KEYWORDS=DAY
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+eureka:
+  client:
+    enabled: false
+
+meeting:
+  provider: dummy
+
+app:
+  instructor-email: dummy@example.com

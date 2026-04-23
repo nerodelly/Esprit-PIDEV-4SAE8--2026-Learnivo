@@ -1,0 +1,36 @@
+# Maven build output
+**/target/
+**/*.jar
+**/*.war
+**/*.class
+
+# Node
+**/node_modules/
+**/npm-debug.log*
+
+# H2 / local DB files
+**/*.mv.db
+**/*.trace.db
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Kiro
+.kiro/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (runtime data, not source)
+**/uploads/
+
+# Keycloak theme (optional, include if needed)
+# keycloak-theme/
+
+# Env files with secrets
+*.env
+.env.*
+application.properties.example

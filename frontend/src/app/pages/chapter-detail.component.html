@@ -1,0 +1,80 @@
+<div class="mx-auto max-w-7xl px-4 py-10 lg:px-8">
+    <!-- Video area -->
+    <div class="relative aspect-video max-w-4xl overflow-hidden rounded-lg">
+        <img src="/images/training-2.jpg" alt="Chapter content" class="object-cover h-full w-full" />
+        <div class="absolute inset-0 flex items-center justify-center">
+            <button
+                class="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-teal-600 shadow-lg transition-colors hover:bg-white">
+                <lucide-angular [img]="PlayIcon" class="h-7 w-7 fill-teal-600 text-teal-600"></lucide-angular>
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="mt-8 border-b border-border">
+        <div class="flex gap-8">
+            @for (tab of tabs; track tab) {
+            <button (click)="setActiveTab(tab)" class="pb-3 text-sm font-medium transition-colors"
+                [ngClass]="activeTab() === tab ? 'border-b-2 border-teal-600 text-teal-600' : 'text-muted-foreground hover:text-foreground'">
+                {{ tab }}
+            </button>
+            }
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="mt-8 max-w-3xl">
+        @if (activeTab() === 'About') {
+        <div>
+            <h2 class="text-xl font-bold text-foreground">Titre du Chapitre</h2>
+            <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+                Lorem Ipsum is simply dummy text of the printing and typesetting industry.
+                Lorem Ipsum has been the industry's standard dummy text ever since the
+                1500s, when an unknown printer took a galley of type and scrambled it to make
+                a type specimen book. It has survived not only five centuries, but also the
+                leap into electronic typesetting, remaining essentially unchanged. It was
+                popularised in the 1960s with the release of Letraset sheets containing Lorem
+                Ipsum passages, and more recently with desktop publishing software like Aldus
+                PageMaker including versions of Lorem Ipsum.
+            </p>
+            <p class="mt-4 text-sm leading-relaxed text-muted-foreground">
+                Lorem Ipsum is simply dummy text of the printing and typesetting industry.
+                Lorem Ipsum has been the industry's standard dummy text ever since the
+                1500s, when an unknown printer took a galley of type and scrambled it to make
+                a type specimen book. It has survived not only five centuries, but also the
+                leap into electronic typesetting, remaining essentially unchanged.
+            </p>
+            <button class="mt-6 text-sm font-medium text-teal-600 hover:underline">
+                Read More
+            </button>
+        </div>
+        }
+
+        @if (activeTab() === 'Content') {
+        <div>
+            <h2 class="text-xl font-bold text-foreground">Course Content</h2>
+            <p class="mt-4 text-sm text-muted-foreground">
+                Detailed content of this chapter will be displayed here.
+            </p>
+        </div>
+        }
+
+        @if (activeTab() === 'Annexes') {
+        <div>
+            <h2 class="text-xl font-bold text-foreground">Annexes</h2>
+            <p class="mt-4 text-sm text-muted-foreground">
+                Supplementary materials and resources for this chapter.
+            </p>
+        </div>
+        }
+
+        @if (activeTab() === 'Forum') {
+        <div>
+            <h2 class="text-xl font-bold text-foreground">Forum</h2>
+            <p class="mt-4 text-sm text-muted-foreground">
+                Discuss this chapter with fellow students and instructors.
+            </p>
+        </div>
+        }
+    </div>
+</div>

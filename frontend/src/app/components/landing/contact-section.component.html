@@ -1,0 +1,54 @@
+<section id="contact" class="bg-muted/50">
+    <div class="mx-auto max-w-7xl px-4 py-12 lg:px-8">
+        <h2 class="text-xl font-bold text-orange-500 md:text-2xl">Contact Us</h2>
+        <p class="mt-2 text-sm text-muted-foreground">
+            Your questions are valuable! Feel free to reach out. Let us know how we can help
+            you on your English journey.
+        </p>
+
+        <div class="mt-8 grid gap-8 md:grid-cols-2">
+            <!-- Form -->
+            <form class="flex flex-col gap-4" (ngSubmit)="onSubmit()">
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="firstName" class="text-xs font-medium text-foreground">
+                            First Name
+                        </label>
+                        <input id="firstName" type="text" placeholder="First name"
+                            class="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-600" />
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label for="lastName" class="text-xs font-medium text-foreground">
+                            Last Name
+                        </label>
+                        <input id="lastName" type="text" placeholder="Last name"
+                            class="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-600" />
+                    </div>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label for="email" class="text-xs font-medium text-foreground">
+                        Email
+                    </label>
+                    <input id="email" type="email" placeholder="your&#64;email.com"
+                        class="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-600" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label for="message" class="text-xs font-medium text-foreground">
+                        Your Message
+                    </label>
+                    <textarea id="message" rows="4" placeholder="Tell us about your needs..."
+                        class="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-600"></textarea>
+                </div>
+                <button type="submit"
+                    class="self-start rounded-full bg-teal-600 px-8 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-teal-600/90">
+                    Send Message
+                </button>
+            </form>
+
+            <!-- Image -->
+            <div class="relative hidden aspect-[4/3] overflow-hidden rounded-lg md:block">
+                <img src="/images/contact-person.jpg" alt="Contact us" class="object-cover h-full w-full" />
+            </div>
+        </div>
+    </div>
+</section>

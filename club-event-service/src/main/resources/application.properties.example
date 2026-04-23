@@ -1,0 +1,6 @@
+# Learnivo Backend - MySQL Configuration
+# Copy this file to application.properties and adjust values
+
+spring.datasource.url=jdbc:mysql://localhost:3306/learnivo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=YOUR_MYSQL_PASSWORD

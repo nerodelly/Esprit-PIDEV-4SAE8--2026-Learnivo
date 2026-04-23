@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: club-event-service
+  namespace: learnivo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: club-event-service
+  template:
+    metadata:
+      labels:
+        app: club-event-service
+    spec:
+      containers:
+        - name: club-event-service
+          image: ghcr.io/nerodelly/club-event-service:IMAGE_TAG
+          ports:
+            - containerPort: 8087
+          envFrom:
+            - configMapRef:
+                name: learnivo-config
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/learnivo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: learnivo-secrets
+                  key: SPRING_DATASOURCE_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8087
+            initialDelaySeconds: 40
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8087
+            initialDelaySeconds: 80
+            periodSeconds: 20

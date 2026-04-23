@@ -1,0 +1,324 @@
+
+services:
+  mysql-db:
+    image: mysql:8
+    container_name: learnivo-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ''
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+      MYSQL_DATABASE: learnivo
+    ports:
+      - "3306:3306"
+    volumes:
+      - learnivo_db_data:/var/lib/mysql
+    networks:
+      - learnivo-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: learnivo-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - learnivo-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    container_name: learnivo-config
+    ports:
+      - "8888:8888"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+    depends_on:
+      eureka-service:
+        condition: service_started
+    networks:
+      - learnivo-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  eureka-service:
+    build:
+      context: .
+      dockerfile: eureka-service/Dockerfile
+    container_name: learnivo-eureka
+    ports:
+      - "8761:8761"
+    networks:
+      - learnivo-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: learnivo-gateway
+    ports:
+      - "8081:8081"
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+    depends_on:
+      - eureka-service
+    volumes:
+      - ./api-gateway/src/main/resources/application.yml:/app/config/application.yml
+    networks:
+      - learnivo-network
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: learnivo-user
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/learnivo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.MySQLDialect
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - KEYCLOAK_ISSUER_URI=http://learnivo-keycloak:8080/realms/learnivo
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://learnivo-config:8888
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+
+  class-service:
+    build:
+      context: .
+      dockerfile: class-service/Dockerfile
+    container_name: learnivo-class
+    ports:
+      - "9090:9090"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/class_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.MySQLDialect
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+      - USER_SERVICE_URL=http://user-service:8085
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://learnivo-config:8888
+      - CONFIG_SERVER_URL=http://learnivo-config:8888
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+
+  competition-service:
+    build:
+      context: .
+      dockerfile: competition-service/Dockerfile
+    container_name: learnivo-competition
+    ports:
+      - "8083:8082"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/competition_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&sessionVariables=sql_mode='NO_ENGINE_SUBSTITUTION'
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.MySQLDialect
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+      - USER_SERVICE_URL=http://user-service:8085
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://learnivo-config:8888
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+
+  course-service:
+    build:
+      context: .
+      dockerfile: course-service/Dockerfile
+    container_name: learnivo-course
+    ports:
+      - "8084:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=mysql
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/course_service_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.MySQLDialect
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+      - USER_SERVICE_URL=http://user-service:8085
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://learnivo-config:8888
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+
+  quiz-service:
+    build:
+      context: .
+      dockerfile: quiz-service/Dockerfile
+    container_name: learnivo-quiz
+    ports:
+      - "8088:8084"
+    environment:
+      - SPRING_PROFILES_ACTIVE=mysql
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/quiz_service_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.MySQLDialect
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://learnivo-config:8888
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+
+  club-event-service:
+    build:
+      context: .
+      dockerfile: club-event-service/Dockerfile
+    container_name: learnivo-club-event
+    ports:
+      - "8087:8087"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/learnivo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=
+      - SPRING_JPA_DATABASE_PLATFORM=org.hibernate.dialect.MySQLDialect
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+      - USER_SERVICE_URL=http://user-service:8085
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://learnivo-config:8888
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      user-service:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+
+  imed-service:
+    build:
+      context: .
+      dockerfile: imed-service/Dockerfile
+    container_name: learnivo-imed
+    ports:
+      - "8086:8088"
+    environment:
+      - EUREKA_SERVER_URL=http://eureka-service:8761/eureka/
+      - USER_SERVICE_URL=http://user-service:8085
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://learnivo-config:8888
+    volumes:
+      - imed_h2_data:/data
+    depends_on:
+      eureka-service:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+
+  claims-service:
+    build:
+      context: claims-service
+      dockerfile: Dockerfile
+    container_name: learnivo-claims
+    ports:
+      - "8089:8088"
+    environment:
+      - DB_HOST=mysql-db
+      - DB_USER=root
+      - DB_PASSWORD=
+      - DB_NAME=learnivo
+      - EUREKA_HOST=eureka-service
+      - EUREKA_PORT=8761
+      - IP_ADDRESS=learnivo-claims
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+      eureka-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    container_name: learnivo-frontend
+    ports:
+      - "4200:80"
+    networks:
+      - learnivo-network
+    depends_on:
+      - api-gateway
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.2
+    container_name: learnivo-keycloak
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    command: start-dev
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./keycloak-theme/learnivo:/opt/keycloak/themes/learnivo
+    networks:
+      - learnivo-network
+
+networks:
+  learnivo-network:
+    driver: bridge
+
+volumes:
+  learnivo_db_data:
+  imed_h2_data:
+
