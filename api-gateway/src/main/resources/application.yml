@@ -61,9 +61,9 @@ spring:
           predicates:
             - Path=/api/quizzes/**
 
-        # Routes vers claims-service (Node.js Mod)
+        # Routes vers claims-service (Spring Boot)
         - id: claims-service
-          uri: lb://CLAIMS-SERVICE
+          uri: lb://claims-service
           predicates:
             - Path=/api/claims/**
 

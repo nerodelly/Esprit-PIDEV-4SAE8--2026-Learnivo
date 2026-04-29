@@ -17,39 +17,29 @@ spec:
         - name: claims-service
           image: ghcr.io/nerodelly/claims-service:IMAGE_TAG
           ports:
-            - containerPort: 8088
+            - containerPort: 8089
+          envFrom:
+            - configMapRef:
+                name: learnivo-config
           env:
-            - name: DB_HOST
-              value: mysql
-            - name: DB_USER
-              value: root
-            - name: DB_PASSWORD
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql:3306/learnivo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+            - name: SPRING_DATASOURCE_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: learnivo-secrets
                   key: SPRING_DATASOURCE_PASSWORD
-            - name: DB_NAME
-              value: learnivo
-            - name: EUREKA_HOST
-              value: eureka-service
-            - name: EUREKA_PORT
-              value: "8761"
-            - name: IP_ADDRESS
-              value: claims-service
-            - name: RABBITMQ_URL
-              valueFrom:
-                secretKeyRef:
-                  name: learnivo-secrets
-                  key: RABBITMQ_URL
+            - name: SPRING_RABBITMQ_HOST
+              value: rabbitmq
           readinessProbe:
             httpGet:
-              path: /health
-              port: 8088
-            initialDelaySeconds: 20
+              path: /api/claims/health
+              port: 8089
+            initialDelaySeconds: 40
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /health
-              port: 8088
-            initialDelaySeconds: 40
+              path: /api/claims/health
+              port: 8089
+            initialDelaySeconds: 80
             periodSeconds: 20

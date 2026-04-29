@@ -7,5 +7,5 @@ spec:
   selector:
     app: claims-service
   ports:
-    - port: 8088
-      targetPort: 8088
+    - port: 8089
+      targetPort: 8089

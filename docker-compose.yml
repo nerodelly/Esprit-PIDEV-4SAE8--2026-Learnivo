@@ -264,26 +264,26 @@ services:
 
   claims-service:
     build:
-      context: claims-service
+      context: claims-service-java
       dockerfile: Dockerfile
     container_name: learnivo-claims
     ports:
-      - "8089:8088"
+      - "8089:8089"
     environment:
-      - DB_HOST=mysql-db
-      - DB_USER=root
-      - DB_PASSWORD=
-      - DB_NAME=learnivo
-      - EUREKA_HOST=eureka-service
-      - EUREKA_PORT=8761
-      - IP_ADDRESS=learnivo-claims
-      - RABBITMQ_URL=amqp://rabbitmq:5672
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/learnivo?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://learnivo-config:8888
     depends_on:
       mysql-db:
         condition: service_healthy
       eureka-service:
         condition: service_started
       rabbitmq:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
     networks:
       - learnivo-network
