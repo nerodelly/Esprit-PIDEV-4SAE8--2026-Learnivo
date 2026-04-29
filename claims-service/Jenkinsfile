@@ -1,0 +1,81 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE     = 'ghcr.io/nerodelly/claims-service'
+        REGISTRY  = 'ghcr.io'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        // ── CI ────────────────────────────────────────────────────────────────
+        stage('Install dependencies') {
+            steps {
+                dir('claims-service') {
+                    sh 'npm ci'
+                }
+            }
+        }
+
+        stage('Run tests') {
+            steps {
+                dir('claims-service') {
+                    sh 'npm test -- --ci --coverage --coverageReporters=text --coverageReporters=lcov'
+                }
+            }
+            post {
+                always {
+                    publishHTML(target: [
+                        allowMissing         : true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll              : true,
+                        reportDir            : 'claims-service/coverage/lcov-report',
+                        reportFiles          : 'index.html',
+                        reportName           : 'Claims Coverage Report'
+                    ])
+                }
+            }
+        }
+
+        // ── CD ────────────────────────────────────────────────────────────────
+        stage('Build & Push Docker image') {
+            when { branch 'main' }
+            steps {
+                withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
+                    sh '''
+                        echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
+                        docker build -t $IMAGE:$BUILD_NUMBER -t $IMAGE:latest \
+                            -f claims-service/Dockerfile claims-service/
+                        docker push $IMAGE:$BUILD_NUMBER
+                        docker push $IMAGE:latest
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            when { branch 'main' }
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+                    sh '''
+                        export KUBECONFIG=$KUBECONFIG_FILE
+                        sed "s|IMAGE_TAG|$BUILD_NUMBER|g" k8s/claims-service/deployment.yml | kubectl apply -f -
+                        kubectl apply -f k8s/claims-service/service.yml
+                        kubectl rollout status deployment/claims-service -n learnivo --timeout=120s
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success { echo "✅ claims-service pipeline passed" }
+        failure { echo "❌ claims-service pipeline failed" }
+    }
+}
