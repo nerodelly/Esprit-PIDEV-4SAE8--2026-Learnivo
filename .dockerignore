@@ -1,0 +1,15 @@
+# Exclude everything except what Maven needs
+frontend/
+keycloak-theme/
+.git/
+.kiro/
+.vscode/
+**/target/
+**/node_modules/
+**/*.mv.db
+**/*.trace.db
+**/uploads/
+*.md
+.gitignore
+start-all.ps1
+docker-compose.yml
