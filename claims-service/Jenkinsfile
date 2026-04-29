@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        IMAGE     = 'ghcr.io/nerodelly/claims-service'
-        REGISTRY  = 'ghcr.io'
+        IMAGE    = 'ghcr.io/nerodelly/claims-service'
+        REGISTRY = 'ghcr.io'
     }
 
     stages {
@@ -15,30 +15,27 @@ pipeline {
         }
 
         // ── CI ────────────────────────────────────────────────────────────────
-        stage('Install dependencies') {
+        stage('Compile') {
             steps {
-                dir('claims-service') {
-                    sh 'npm ci'
-                }
+                sh 'mvn compile -pl claims-service -am -DskipTests -q'
             }
         }
 
         stage('Run tests') {
             steps {
-                dir('claims-service') {
-                    sh 'npm test -- --ci --coverage --coverageReporters=text --coverageReporters=lcov'
-                }
+                sh '''
+                    mvn test -pl claims-service \
+                        -Deureka.client.enabled=false \
+                        -Dspring.cloud.config.enabled=false \
+                        -Dspring.autoconfigure.exclude=\
+org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration,\
+org.springframework.boot.autoconfigure.mail.MailSenderAutoConfiguration
+                '''
             }
             post {
                 always {
-                    publishHTML(target: [
-                        allowMissing         : true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll              : true,
-                        reportDir            : 'claims-service/coverage/lcov-report',
-                        reportFiles          : 'index.html',
-                        reportName           : 'Claims Coverage Report'
-                    ])
+                    junit allowEmptyResults: true,
+                          testResults: 'claims-service/target/surefire-reports/*.xml'
                 }
             }
         }
@@ -51,7 +48,7 @@ pipeline {
                     sh '''
                         echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
                         docker build -t $IMAGE:$BUILD_NUMBER -t $IMAGE:latest \
-                            -f claims-service/Dockerfile claims-service/
+                            -f claims-service-java/Dockerfile .
                         docker push $IMAGE:$BUILD_NUMBER
                         docker push $IMAGE:latest
                     '''

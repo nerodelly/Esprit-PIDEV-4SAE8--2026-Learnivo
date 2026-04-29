@@ -55,7 +55,7 @@ pipeline {
                                 echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
                                 docker build -t $IMAGE_PREFIX/claims-service:$BUILD_NUMBER \
                                              -t $IMAGE_PREFIX/claims-service:latest \
-                                             -f claims-service-java/Dockerfile claims-service-java/
+                                             -f claims-service/Dockerfile .
                                 docker push $IMAGE_PREFIX/claims-service:$BUILD_NUMBER
                                 docker push $IMAGE_PREFIX/claims-service:latest
                             '''

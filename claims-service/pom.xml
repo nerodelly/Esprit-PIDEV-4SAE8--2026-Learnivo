@@ -11,10 +11,10 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>claims-service-java</artifactId>
+    <artifactId>claims-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>claims-service-java</name>
-    <description>Claims Service - Java rewrite of the Node.js claims microservice</description>
+    <name>claims-service</name>
+    <description>Claims Service - Spring Boot microservice</description>
 
     <properties>
         <java.version>17</java.version>

@@ -29,7 +29,7 @@
 		<module>quiz-service</module>
 		<module>club-event-service</module>
 		<module>imed-service</module>
-		<module>claims-service-java</module>
+		<module>claims-service</module>
 	</modules>
 
 	<properties>

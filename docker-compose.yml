@@ -264,8 +264,8 @@ services:
 
   claims-service:
     build:
-      context: claims-service-java
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: claims-service/Dockerfile
     container_name: learnivo-claims
     ports:
       - "8089:8089"
