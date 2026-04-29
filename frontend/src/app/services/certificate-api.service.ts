@@ -22,7 +22,7 @@ export interface Certificate {
 })
 export class CertificateApiService {
   private readonly http = inject(HttpClient);
-  private readonly apiBase = 'http://localhost:8081/api/certificates';
+  private readonly apiBase = 'http://localhost:8082/api/certificates';
 
   getCertificates(): Observable<Certificate[]> {
     return this.http.get<Certificate[]>(this.apiBase);

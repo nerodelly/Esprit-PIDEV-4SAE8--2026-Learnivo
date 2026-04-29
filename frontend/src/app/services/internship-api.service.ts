@@ -113,7 +113,7 @@ export interface ChatMessagePayload {
 })
 export class InternshipApiService {
     private readonly http = inject(HttpClient);
-    private readonly apiBase = 'http://localhost:8081/api';
+    private readonly apiBase = 'http://localhost:8082/api';
 
     getInternships(): Observable<Internship[]> {
         return this.http.get<Internship[]>(`${this.apiBase}/internships`);

@@ -74,13 +74,17 @@ services:
       dockerfile: api-gateway/Dockerfile
     container_name: learnivo-gateway
     ports:
-      - "8081:8081"
+      - "8082:8081"
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service:8761/eureka/
+      - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORSCONFIGURATIONS_[/**]_ALLOWEDORIGINS=http://localhost:4200
+      - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORSCONFIGURATIONS_[/**]_ALLOWEDMETHODS=GET,POST,PUT,DELETE,OPTIONS,PATCH
+      - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORSCONFIGURATIONS_[/**]_ALLOWEDHEADERS=*
+      - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORSCONFIGURATIONS_[/**]_ALLOWCREDENTIALS=true
+      - SPRING_CLOUD_GATEWAY_GLOBALCORS_CORSCONFIGURATIONS_[/**]_MAXAGE=3600
+      - SPRING_CLOUD_GATEWAY_GLOBALCORS_ADD-TO-SIMPLE-URL-HANDLER-MAPPING=true
     depends_on:
       - eureka-service
-    volumes:
-      - ./api-gateway/src/main/resources/application.yml:/app/config/application.yml
     networks:
       - learnivo-network
 

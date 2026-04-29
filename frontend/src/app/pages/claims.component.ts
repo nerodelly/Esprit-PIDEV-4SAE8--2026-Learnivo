@@ -243,7 +243,7 @@ export class ClaimsComponent implements OnInit, OnDestroy {
   searchQuery = '';
   meta = { total: 0, page: 1, limit: 5, totalPages: 1 };
 
-  private apiBase = 'http://localhost:8081/api/claims';
+  private apiBase = 'http://localhost:8082/api/claims';
   private badWords = ['idiot', 'stupid', 'dumb', 'hate', 'terrible', 'awful', 'shut up', 'useless', 'garbage', 'trash', 'damn', 'hell'];
 
   // Workflow steps for the visual stepper

@@ -25,7 +25,7 @@ export class ClaimsNotificationService {
   private reconnectTimer: any = null;
   private readonly RECONNECT_DELAY = 3000;
 
-  private apiBase = 'http://localhost:8081/api/claims/notifications';
+  private apiBase = 'http://localhost:8082/api/claims/notifications';
 
   // Signals for reactive state
   private readonly _notifications = signal<ClaimNotification[]>([]);

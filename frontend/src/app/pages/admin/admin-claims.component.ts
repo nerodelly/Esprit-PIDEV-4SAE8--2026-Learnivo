@@ -338,7 +338,7 @@ export class AdminClaimsComponent implements OnInit, OnDestroy {
   responses: { [key: number]: string } = {};
   stats: ClaimStats = { total: 0, created: 0, inProgress: 0, resolved: 0, closed: 0, rejected: 0, critical: 0, escalated: 0, slaBreached: 0 };
 
-  private apiBase = 'http://localhost:8081/api/claims';
+  private apiBase = 'http://localhost:8082/api/claims';
   private slaTimer: any;
 
   constructor(private http: HttpClient) {}

@@ -139,7 +139,7 @@ interface User {
 })
 export class AdminProfessorsComponent implements OnInit {
   private http = inject(HttpClient);
-  private apiBase = 'http://localhost:8081/api';
+  private apiBase = 'http://localhost:8082/api';
 
   allProfessors: User[] = [];
   filteredProfessors: User[] = [];

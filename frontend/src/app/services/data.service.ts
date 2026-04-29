@@ -282,7 +282,7 @@ function toEvent(b: any): PlatformEvent {
 }
 
 // ─── API URLs ─────────────────────────────────────────────────────────────────
-const API_BASE = 'http://localhost:8081/api';
+const API_BASE = 'http://localhost:8082/api';
 const CLASS_API = API_BASE;
 const COMP_API  = API_BASE;
 
@@ -1281,13 +1281,13 @@ export class DataService {
     const fd = new FormData(); fd.append('file', file);
     const r = await this.http.post<{ url: string }>(`${API_BASE}/courses/assets/cover`, fd).pipe(catchError(() => of({ url: '' }))).toPromise();
     const url = r?.url ?? '';
-    return url && url.startsWith('/') ? `http://localhost:8081${url}` : url;
+    return url && url.startsWith('/') ? `http://localhost:8082${url}` : url;
   }
   async uploadCourseChapterPdf(file: File): Promise<string> {
     const fd = new FormData(); fd.append('file', file);
     const r = await this.http.post<{ url: string }>(`${API_BASE}/courses/assets/chapter-pdf`, fd).pipe(catchError(() => of({ url: '' }))).toPromise();
     const url = r?.url ?? '';
-    return url && url.startsWith('/') ? `http://localhost:8081${url}` : url;
+    return url && url.startsWith('/') ? `http://localhost:8082${url}` : url;
   }
 
   addNotification(n: Omit<AdminNotification, 'id' | 'createdAt' | 'read'>) {
