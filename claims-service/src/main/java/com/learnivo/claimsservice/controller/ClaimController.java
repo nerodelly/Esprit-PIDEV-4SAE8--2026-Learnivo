@@ -318,13 +318,13 @@ public class ClaimController {
     }
 
     @GetMapping(value = "/notifications/user/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<?> userStream(@RequestParam(required = false) String email) {
+    public SseEmitter userStream(@RequestParam(required = false) String email,
+                                 jakarta.servlet.http.HttpServletResponse response) {
         if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Email query parameter required"));
+            response.setStatus(400);
+            return null;
         }
-        return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_EVENT_STREAM)
-                .body(sseService.createUserEmitter(email));
+        return sseService.createUserEmitter(email);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
