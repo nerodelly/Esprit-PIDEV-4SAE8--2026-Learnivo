@@ -298,7 +298,7 @@ services:
       dockerfile: Dockerfile
     container_name: learnivo-frontend
     ports:
-      - "4200:80"
+      - "4201:80"
     networks:
       - learnivo-network
     depends_on:
