@@ -1,4 +1,4 @@
-name: Learnivo CI/CD
+name: Learnivo — Global CI/CD
 
 on:
   push:
@@ -10,11 +10,45 @@ env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/nerodelly
 
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE 1 — CI: claims-service and user-service (dedicated pipelines)
+# ─────────────────────────────────────────────────────────────────────────────
 jobs:
-  # ─── Build & push each service image ────────────────────────────────────────
+
+  ci-claims:
+    name: "CI » claims-service"
+    uses: ./.github/workflows/ci-claims.yml
+    secrets: inherit
+
+  ci-user:
+    name: "CI » user-service"
+    uses: ./.github/workflows/ci-user.yml
+    secrets: inherit
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE 2 — CD: claims-service and user-service (only after their CI passes)
+# ─────────────────────────────────────────────────────────────────────────────
+
+  cd-claims:
+    name: "CD » claims-service"
+    needs: ci-claims
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/cd-claims.yml
+    secrets: inherit
+
+  cd-user:
+    name: "CD » user-service"
+    needs: ci-user
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/cd-user.yml
+    secrets: inherit
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE 3 — Build & push all other service images (parallel)
+# ─────────────────────────────────────────────────────────────────────────────
 
   build-eureka-service:
-    name: Build eureka-service
+    name: "Build » eureka-service"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,7 +70,7 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/eureka-service:${{ github.sha }}
 
   build-config-server:
-    name: Build config-server
+    name: "Build » config-server"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,7 +92,7 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/config-server:${{ github.sha }}
 
   build-api-gateway:
-    name: Build api-gateway
+    name: "Build » api-gateway"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -79,30 +113,8 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/api-gateway:latest
             ${{ env.IMAGE_PREFIX }}/api-gateway:${{ github.sha }}
 
-  build-user-service:
-    name: Build user-service
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: user-service/Dockerfile
-          push: ${{ github.ref == 'refs/heads/main' }}
-          tags: |
-            ${{ env.IMAGE_PREFIX }}/user-service:latest
-            ${{ env.IMAGE_PREFIX }}/user-service:${{ github.sha }}
-
   build-class-service:
-    name: Build class-service
+    name: "Build » class-service"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -124,7 +136,7 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/class-service:${{ github.sha }}
 
   build-competition-service:
-    name: Build competition-service
+    name: "Build » competition-service"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -146,7 +158,7 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/competition-service:${{ github.sha }}
 
   build-course-service:
-    name: Build course-service
+    name: "Build » course-service"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -168,7 +180,7 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/course-service:${{ github.sha }}
 
   build-quiz-service:
-    name: Build quiz-service
+    name: "Build » quiz-service"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -190,7 +202,7 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/quiz-service:${{ github.sha }}
 
   build-club-event-service:
-    name: Build club-event-service
+    name: "Build » club-event-service"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -212,7 +224,7 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/club-event-service:${{ github.sha }}
 
   build-imed-service:
-    name: Build imed-service
+    name: "Build » imed-service"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -233,30 +245,8 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/imed-service:latest
             ${{ env.IMAGE_PREFIX }}/imed-service:${{ github.sha }}
 
-  build-claims-service:
-    name: Build claims-service
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v5
-        with:
-          context: claims-service
-          file: claims-service/Dockerfile
-          push: ${{ github.ref == 'refs/heads/main' }}
-          tags: |
-            ${{ env.IMAGE_PREFIX }}/claims-service:latest
-            ${{ env.IMAGE_PREFIX }}/claims-service:${{ github.sha }}
-
   build-frontend:
-    name: Build frontend
+    name: "Build » frontend"
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -277,27 +267,32 @@ jobs:
             ${{ env.IMAGE_PREFIX }}/frontend:latest
             ${{ env.IMAGE_PREFIX }}/frontend:${{ github.sha }}
 
-  # ─── Deploy to Kubernetes (only on main) ────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# PHASE 4 — Deploy everything to Kubernetes
+#           Waits for: all builds + claims CD + user CD
+# ─────────────────────────────────────────────────────────────────────────────
 
   deploy:
-    name: Deploy to Kubernetes
+    name: "Deploy » all services"
     runs-on: ubuntu-latest
     needs:
+      - cd-claims
+      - cd-user
       - build-eureka-service
       - build-config-server
       - build-api-gateway
-      - build-user-service
       - build-class-service
       - build-competition-service
       - build-course-service
       - build-quiz-service
       - build-club-event-service
       - build-imed-service
-      - build-claims-service
       - build-frontend
     if: github.ref == 'refs/heads/main'
+    environment: production
     permissions:
       contents: read
+
     steps:
       - uses: actions/checkout@v4
 
@@ -312,46 +307,45 @@ jobs:
           echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
 
-      - name: Update image tags in manifests
+      - name: Stamp image tags in manifests
         run: |
-          find k8s/ -name '*.yml' -exec sed -i \
+          find k8s/ -name 'deployment.yml' -exec sed -i \
             "s|IMAGE_TAG|${{ github.sha }}|g" {} \;
 
-      - name: Apply namespace and config
+      - name: Apply namespace & shared config
         run: |
           kubectl apply -f k8s/namespace.yml
           kubectl apply -f k8s/configmap.yml
           kubectl apply -f k8s/secrets.yml
 
-      - name: Deploy infrastructure (Eureka, Config Server, MySQL, RabbitMQ)
+      - name: Deploy infrastructure
         run: |
           kubectl apply -f k8s/mysql/
           kubectl apply -f k8s/rabbitmq/
           kubectl apply -f k8s/eureka-service/
           kubectl apply -f k8s/config-server/
-          kubectl rollout status deployment/eureka-service -n learnivo --timeout=120s
-          kubectl rollout status deployment/config-server -n learnivo --timeout=120s
+          kubectl rollout status deployment/eureka-service  -n learnivo --timeout=120s
+          kubectl rollout status deployment/config-server   -n learnivo --timeout=120s
 
       - name: Deploy microservices
         run: |
-          kubectl apply -f k8s/user-service/
           kubectl apply -f k8s/class-service/
           kubectl apply -f k8s/competition-service/
           kubectl apply -f k8s/course-service/
           kubectl apply -f k8s/quiz-service/
           kubectl apply -f k8s/club-event-service/
           kubectl apply -f k8s/imed-service/
-          kubectl apply -f k8s/claims-service/
 
-      - name: Deploy gateway and frontend
+      - name: Deploy gateway & frontend
         run: |
           kubectl apply -f k8s/api-gateway/
           kubectl apply -f k8s/frontend/
 
-      - name: Verify rollout
+      - name: Verify all rollouts
         run: |
-          for svc in eureka-service config-server api-gateway user-service class-service \
-            competition-service course-service quiz-service club-event-service \
-            imed-service claims-service frontend; do
+          for svc in eureka-service config-server api-gateway \
+            class-service competition-service course-service \
+            quiz-service club-event-service imed-service frontend; do
+            echo "Checking $svc..."
             kubectl rollout status deployment/$svc -n learnivo --timeout=180s
           done

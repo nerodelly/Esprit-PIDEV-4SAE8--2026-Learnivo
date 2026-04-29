@@ -1,0 +1,48 @@
+name: CI — claims-service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'claims-service/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'claims-service/**'
+  workflow_call:
+    outputs:
+      result:
+        description: "CI result"
+        value: ${{ jobs.test.result }}
+
+jobs:
+  test:
+    name: Lint & Test (Node.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: claims-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: claims-service/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --ci --coverage --coverageReporters=text --coverageReporters=lcov
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: claims-coverage
+          path: claims-service/coverage/
+          retention-days: 7
