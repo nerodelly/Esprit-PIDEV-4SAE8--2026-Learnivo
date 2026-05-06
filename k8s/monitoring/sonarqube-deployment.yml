@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarqube
+  namespace: learnivo-monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarqube
+  template:
+    metadata:
+      labels:
+        app: sonarqube
+    spec:
+      initContainers:
+        - name: init-sysctl
+          image: busybox
+          command: ['sysctl', '-w', 'vm.max_map_count=524288']
+          securityContext:
+            privileged: true
+      containers:
+        - name: sonarqube
+          image: sonarqube:10-community
+          ports:
+            - containerPort: 9000
+          env:
+            - name: SONAR_ES_BOOTSTRAP_CHECKS_DISABLE
+              value: "true"
+          volumeMounts:
+            - name: data
+              mountPath: /opt/sonarqube/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarqube
+  namespace: learnivo-monitoring
+spec:
+  selector:
+    app: sonarqube
+  type: NodePort
+  ports:
+    - port: 9000
+      targetPort: 9000
+      nodePort: 30900

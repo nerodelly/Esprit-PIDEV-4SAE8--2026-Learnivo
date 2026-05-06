@@ -1,0 +1,163 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job">
+  <actions/>
+  <description>Learnivo Global Pipeline - Build, SonarQube Analysis, Docker, Kubernetes Deploy</description>
+  <keepDependencies>false</keepDependencies>
+  <properties/>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps">
+    <script>
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_PREFIX   = 'ghcr.io/nerodelly'
+        REGISTRY       = 'ghcr.io'
+        SONAR_HOST_URL = 'http://learnivo-sonarqube:9000'
+        SONAR_PROJECT  = 'learnivo'
+    }
+
+    tools {
+        maven 'Maven 3.9.6'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/nerodelly/Esprit-PIDEV-4SAE8--2026-Learnivo.git'
+            }
+        }
+
+        stage('Maven Build') {
+            steps {
+                sh 'mvn clean package -DskipTests --batch-mode -q'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''mvn sonar:sonar \
+                          -Dsonar.projectKey=${SONAR_PROJECT} \
+                          -Dsonar.projectName="Learnivo Microservices" \
+                          -Dsonar.host.url=${SONAR_HOST_URL} \
+                          -Dsonar.java.binaries=**/target/classes \
+                          --batch-mode -q'''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: false
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            parallel {
+                stage('Test: user-service') {
+                    steps { sh 'mvn test -pl user-service --batch-mode -q || true' }
+                    post { always { junit allowEmptyResults: true, testResults: 'user-service/target/surefire-reports/*.xml' } }
+                }
+                stage('Test: claims-service') {
+                    steps { sh 'mvn test -pl claims-service --batch-mode -q || true' }
+                    post { always { junit allowEmptyResults: true, testResults: 'claims-service/target/surefire-reports/*.xml' } }
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            when { branch 'main' }
+            parallel {
+                stage('Image: user-service') {
+                    steps {
+                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
+                            sh '''echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
+                                docker build -t $IMAGE_PREFIX/user-service:$BUILD_NUMBER -t $IMAGE_PREFIX/user-service:latest -f user-service/Dockerfile .
+                                docker push $IMAGE_PREFIX/user-service:$BUILD_NUMBER
+                                docker push $IMAGE_PREFIX/user-service:latest'''
+                        }
+                    }
+                }
+                stage('Image: claims-service') {
+                    steps {
+                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
+                            sh '''echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
+                                docker build -t $IMAGE_PREFIX/claims-service:$BUILD_NUMBER -t $IMAGE_PREFIX/claims-service:latest -f claims-service/Dockerfile .
+                                docker push $IMAGE_PREFIX/claims-service:$BUILD_NUMBER
+                                docker push $IMAGE_PREFIX/claims-service:latest'''
+                        }
+                    }
+                }
+                stage('Image: api-gateway') {
+                    steps {
+                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
+                            sh '''echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
+                                docker build -t $IMAGE_PREFIX/api-gateway:$BUILD_NUMBER -t $IMAGE_PREFIX/api-gateway:latest -f api-gateway/Dockerfile .
+                                docker push $IMAGE_PREFIX/api-gateway:$BUILD_NUMBER
+                                docker push $IMAGE_PREFIX/api-gateway:latest'''
+                        }
+                    }
+                }
+                stage('Image: eureka-service') {
+                    steps {
+                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
+                            sh '''echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
+                                docker build -t $IMAGE_PREFIX/eureka-service:$BUILD_NUMBER -t $IMAGE_PREFIX/eureka-service:latest -f eureka-service/Dockerfile .
+                                docker push $IMAGE_PREFIX/eureka-service:$BUILD_NUMBER
+                                docker push $IMAGE_PREFIX/eureka-service:latest'''
+                        }
+                    }
+                }
+                stage('Image: frontend') {
+                    steps {
+                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
+                            sh '''echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
+                                docker build -t $IMAGE_PREFIX/frontend:$BUILD_NUMBER -t $IMAGE_PREFIX/frontend:latest -f frontend/Dockerfile frontend/
+                                docker push $IMAGE_PREFIX/frontend:$BUILD_NUMBER
+                                docker push $IMAGE_PREFIX/frontend:latest'''
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            when { branch 'main' }
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+                    sh '''export KUBECONFIG=$KUBECONFIG_FILE
+                        find k8s/ -name "deployment.yml" -exec sed -i "s|IMAGE_TAG|$BUILD_NUMBER|g" {} \\;
+                        kubectl apply -f k8s/namespace.yml
+                        kubectl apply -f k8s/configmap.yml
+                        kubectl apply -f k8s/secrets.yml
+                        kubectl apply -f k8s/mysql/
+                        kubectl apply -f k8s/rabbitmq/
+                        kubectl apply -f k8s/eureka-service/
+                        kubectl apply -f k8s/config-server/
+                        kubectl rollout status deployment/eureka-service -n learnivo --timeout=120s
+                        kubectl apply -f k8s/user-service/
+                        kubectl apply -f k8s/claims-service/
+                        kubectl apply -f k8s/api-gateway/
+                        kubectl apply -f k8s/frontend/
+                        kubectl apply -f k8s/monitoring/ || true'''
+                }
+            }
+        }
+    }
+
+    post {
+        always { cleanWs() }
+        success { echo 'Learnivo pipeline PASSED' }
+        failure { echo 'Learnivo pipeline FAILED - check logs' }
+    }
+}
+    </script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

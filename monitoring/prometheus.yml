@@ -1,0 +1,82 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'eureka-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['eureka-service:8761']
+    scrape_interval: 15s
+
+  - job_name: 'config-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['config-server:8888']
+    scrape_interval: 15s
+
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8081']
+    scrape_interval: 15s
+
+  - job_name: 'user-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['user-service:8085']
+    scrape_interval: 15s
+
+  - job_name: 'claims-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['claims-service:8089']
+    scrape_interval: 15s
+
+  - job_name: 'class-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['class-service:9090']
+    scrape_interval: 15s
+
+  - job_name: 'competition-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['competition-service:8082']
+    scrape_interval: 15s
+
+  - job_name: 'course-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['course-service:8083']
+    scrape_interval: 15s
+
+  - job_name: 'quiz-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['quiz-service:8084']
+    scrape_interval: 15s
+
+  - job_name: 'club-event-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['club-event-service:8087']
+    scrape_interval: 15s
+
+  - job_name: 'imed-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['imed-service:8088']
+    scrape_interval: 15s

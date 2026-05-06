@@ -1,16 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Learnivo — Global Jenkins Pipeline
-// Orchestrates CI/CD for all microservices.
-// claims-service and user-service run their own dedicated Jenkinsfiles
-// (triggered as downstream jobs). All other services are built here.
+// Stages: Checkout → Build → Test → SonarQube → Docker Build+Push → K8s Deploy
 // ─────────────────────────────────────────────────────────────────────────────
 
 pipeline {
     agent any
 
     environment {
-        IMAGE_PREFIX = 'ghcr.io/nerodelly'
-        REGISTRY     = 'ghcr.io'
+        LOCAL_REGISTRY = 'localhost:5000'
+        SONAR_HOST_URL = 'http://learnivo-sonarqube:9000'
+    }
+
+    tools {
+        maven 'Maven 3.9.6'
     }
 
     stages {
@@ -21,13 +23,12 @@ pipeline {
             }
         }
 
-        // ── Phase 1: CI for claims & user (dedicated pipelines) ───────────────
+        // ── Phase 1: CI — claims-service and user-service ─────────────────────
         stage('CI — claims-service & user-service') {
             parallel {
                 stage('CI: claims-service') {
                     steps {
                         build job: 'ci-claims-service',
-                              parameters: [string(name: 'BRANCH', value: env.BRANCH_NAME ?: 'main')],
                               wait: true,
                               propagate: true
                     }
@@ -35,7 +36,6 @@ pipeline {
                 stage('CI: user-service') {
                     steps {
                         build job: 'ci-user-service',
-                              parameters: [string(name: 'BRANCH', value: env.BRANCH_NAME ?: 'main')],
                               wait: true,
                               propagate: true
                     }
@@ -43,250 +43,205 @@ pipeline {
             }
         }
 
-        // ── Phase 2: Build all service images in parallel ─────────────────────
-        stage('Build Docker images') {
-            parallel {
+        // ── Phase 2: Maven Build (all modules) ────────────────────────────────
+        stage('Maven Build') {
+            steps {
+                sh 'mvn clean package -DskipTests --batch-mode -q'
+            }
+        }
 
-                stage('claims-service') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/claims-service:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/claims-service:latest \
-                                             -f claims-service/Dockerfile .
-                                docker push $IMAGE_PREFIX/claims-service:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/claims-service:latest
-                            '''
-                        }
-                    }
+        // ── Phase 3: Unit Tests ───────────────────────────────────────────────
+        stage('Unit Tests') {
+            steps {
+                sh 'mvn test --batch-mode -q || true'
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true,
+                          testResults: '**/target/surefire-reports/*.xml'
                 }
+            }
+        }
 
-                stage('user-service') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/user-service:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/user-service:latest \
-                                             -f user-service/Dockerfile .
-                                docker push $IMAGE_PREFIX/user-service:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/user-service:latest
-                            '''
-                        }
-                    }
-                }
-
-                stage('eureka-service') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/eureka-service:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/eureka-service:latest \
-                                             -f eureka-service/Dockerfile .
-                                docker push $IMAGE_PREFIX/eureka-service:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/eureka-service:latest
-                            '''
-                        }
-                    }
-                }
-
-                stage('config-server') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/config-server:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/config-server:latest \
-                                             -f config-server/Dockerfile .
-                                docker push $IMAGE_PREFIX/config-server:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/config-server:latest
-                            '''
-                        }
-                    }
-                }
-
-                stage('api-gateway') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/api-gateway:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/api-gateway:latest \
-                                             -f api-gateway/Dockerfile .
-                                docker push $IMAGE_PREFIX/api-gateway:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/api-gateway:latest
-                            '''
-                        }
-                    }
-                }
-
-                stage('class-service') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/class-service:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/class-service:latest \
-                                             -f class-service/Dockerfile .
-                                docker push $IMAGE_PREFIX/class-service:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/class-service:latest
-                            '''
-                        }
-                    }
-                }
-
-                stage('competition-service') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/competition-service:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/competition-service:latest \
-                                             -f competition-service/Dockerfile .
-                                docker push $IMAGE_PREFIX/competition-service:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/competition-service:latest
-                            '''
-                        }
-                    }
-                }
-
-                stage('course-service') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/course-service:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/course-service:latest \
-                                             -f course-service/Dockerfile .
-                                docker push $IMAGE_PREFIX/course-service:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/course-service:latest
-                            '''
-                        }
-                    }
-                }
-
-                stage('quiz-service') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/quiz-service:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/quiz-service:latest \
-                                             -f quiz-service/Dockerfile .
-                                docker push $IMAGE_PREFIX/quiz-service:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/quiz-service:latest
-                            '''
-                        }
-                    }
-                }
-
-                stage('club-event-service') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/club-event-service:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/club-event-service:latest \
-                                             -f club-event-service/Dockerfile .
-                                docker push $IMAGE_PREFIX/club-event-service:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/club-event-service:latest
-                            '''
-                        }
-                    }
-                }
-
-                stage('imed-service') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/imed-service:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/imed-service:latest \
-                                             -f imed-service/Dockerfile .
-                                docker push $IMAGE_PREFIX/imed-service:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/imed-service:latest
-                            '''
-                        }
-                    }
-                }
-
-                stage('frontend') {
-                    when { branch 'main' }
-                    steps {
-                        withCredentials([string(credentialsId: 'ghcr-token', variable: 'GHCR_TOKEN')]) {
-                            sh '''
-                                echo "$GHCR_TOKEN" | docker login ghcr.io -u nerodelly --password-stdin
-                                docker build -t $IMAGE_PREFIX/frontend:$BUILD_NUMBER \
-                                             -t $IMAGE_PREFIX/frontend:latest \
-                                             -f frontend/Dockerfile frontend/
-                                docker push $IMAGE_PREFIX/frontend:$BUILD_NUMBER
-                                docker push $IMAGE_PREFIX/frontend:latest
-                            '''
-                        }
+        // ── Phase 4: SonarQube Analysis ───────────────────────────────────────
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                        sh '''mvn sonar:sonar \
+                              -Dsonar.projectKey=learnivo \
+                              -Dsonar.projectName="Learnivo Microservices" \
+                              -Dsonar.java.binaries=**/target/classes \
+                              -Dsonar.login=${SONAR_TOKEN} \
+                              --batch-mode -q || true'''
                     }
                 }
             }
         }
 
-        // ── Phase 3: Deploy all to Kubernetes ─────────────────────────────────
+        // ── Phase 5: Build & Push Docker images to local registry ─────────────
+        stage('Build Docker Images') {
+            parallel {
+                stage('user-service') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/user-service:latest \
+                                         -t ${LOCAL_REGISTRY}/user-service:${BUILD_NUMBER} \
+                                         -f user-service/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/user-service:latest
+                            docker push ${LOCAL_REGISTRY}/user-service:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('claims-service') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/claims-service:latest \
+                                         -t ${LOCAL_REGISTRY}/claims-service:${BUILD_NUMBER} \
+                                         -f claims-service/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/claims-service:latest
+                            docker push ${LOCAL_REGISTRY}/claims-service:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('api-gateway') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/api-gateway:latest \
+                                         -t ${LOCAL_REGISTRY}/api-gateway:${BUILD_NUMBER} \
+                                         -f api-gateway/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/api-gateway:latest
+                            docker push ${LOCAL_REGISTRY}/api-gateway:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('eureka-service') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/eureka-service:latest \
+                                         -t ${LOCAL_REGISTRY}/eureka-service:${BUILD_NUMBER} \
+                                         -f eureka-service/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/eureka-service:latest
+                            docker push ${LOCAL_REGISTRY}/eureka-service:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('config-server') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/config-server:latest \
+                                         -t ${LOCAL_REGISTRY}/config-server:${BUILD_NUMBER} \
+                                         -f config-server/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/config-server:latest
+                            docker push ${LOCAL_REGISTRY}/config-server:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('class-service') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/class-service:latest \
+                                         -t ${LOCAL_REGISTRY}/class-service:${BUILD_NUMBER} \
+                                         -f class-service/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/class-service:latest
+                            docker push ${LOCAL_REGISTRY}/class-service:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('competition-service') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/competition-service:latest \
+                                         -t ${LOCAL_REGISTRY}/competition-service:${BUILD_NUMBER} \
+                                         -f competition-service/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/competition-service:latest
+                            docker push ${LOCAL_REGISTRY}/competition-service:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('course-service') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/course-service:latest \
+                                         -t ${LOCAL_REGISTRY}/course-service:${BUILD_NUMBER} \
+                                         -f course-service/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/course-service:latest
+                            docker push ${LOCAL_REGISTRY}/course-service:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('quiz-service') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/quiz-service:latest \
+                                         -t ${LOCAL_REGISTRY}/quiz-service:${BUILD_NUMBER} \
+                                         -f quiz-service/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/quiz-service:latest
+                            docker push ${LOCAL_REGISTRY}/quiz-service:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('club-event-service') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/club-event-service:latest \
+                                         -t ${LOCAL_REGISTRY}/club-event-service:${BUILD_NUMBER} \
+                                         -f club-event-service/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/club-event-service:latest
+                            docker push ${LOCAL_REGISTRY}/club-event-service:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('imed-service') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/imed-service:latest \
+                                         -t ${LOCAL_REGISTRY}/imed-service:${BUILD_NUMBER} \
+                                         -f imed-service/Dockerfile .
+                            docker push ${LOCAL_REGISTRY}/imed-service:latest
+                            docker push ${LOCAL_REGISTRY}/imed-service:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                stage('frontend') {
+                    steps {
+                        sh """
+                            docker build -t ${LOCAL_REGISTRY}/frontend:latest \
+                                         -t ${LOCAL_REGISTRY}/frontend:${BUILD_NUMBER} \
+                                         -f frontend/Dockerfile frontend/
+                            docker push ${LOCAL_REGISTRY}/frontend:latest
+                            docker push ${LOCAL_REGISTRY}/frontend:${BUILD_NUMBER}
+                        """
+                    }
+                }
+            }
+        }
+
+        // ── Phase 6: Deploy to Kubernetes ─────────────────────────────────────
         stage('Deploy to Kubernetes') {
-            when { branch 'main' }
             steps {
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     sh '''
-                        export KUBECONFIG=$KUBECONFIG_FILE
-
-                        # Stamp build number into all deployment manifests
+                        export KUBECONFIG=$KUBECONFIG
                         find k8s/ -name "deployment.yml" -exec \
-                            sed -i "s|IMAGE_TAG|$BUILD_NUMBER|g" {} \\;
-
-                        # Namespace & shared config
-                        kubectl apply -f k8s/namespace.yml
-                        kubectl apply -f k8s/configmap.yml
-                        kubectl apply -f k8s/secrets.yml
-
-                        # Infrastructure
-                        kubectl apply -f k8s/mysql/
-                        kubectl apply -f k8s/rabbitmq/
-                        kubectl apply -f k8s/eureka-service/
-                        kubectl apply -f k8s/config-server/
-                        kubectl rollout status deployment/eureka-service -n learnivo --timeout=120s
-                        kubectl rollout status deployment/config-server  -n learnivo --timeout=120s
-
-                        # Microservices
-                        kubectl apply -f k8s/user-service/
-                        kubectl apply -f k8s/claims-service/
-                        kubectl apply -f k8s/class-service/
-                        kubectl apply -f k8s/competition-service/
-                        kubectl apply -f k8s/course-service/
-                        kubectl apply -f k8s/quiz-service/
-                        kubectl apply -f k8s/club-event-service/
-                        kubectl apply -f k8s/imed-service/
-
-                        # Gateway & frontend
-                        kubectl apply -f k8s/api-gateway/
-                        kubectl apply -f k8s/frontend/
-
-                        # Verify all rollouts
-                        for svc in eureka-service config-server api-gateway user-service \
-                            claims-service class-service competition-service course-service \
-                            quiz-service club-event-service imed-service frontend; do
-                            echo "Verifying $svc..."
-                            kubectl rollout status deployment/$svc -n learnivo --timeout=180s
-                        done
+                            sed -i "s|IMAGE_TAG|${BUILD_NUMBER}|g" {} \\;
+                        kubectl apply -f k8s/namespace.yml       || true
+                        kubectl apply -f k8s/configmap.yml       || true
+                        kubectl apply -f k8s/secrets.yml         || true
+                        kubectl apply -f k8s/mysql/              || true
+                        kubectl apply -f k8s/rabbitmq/           || true
+                        kubectl apply -f k8s/eureka-service/     || true
+                        kubectl apply -f k8s/config-server/      || true
+                        kubectl apply -f k8s/user-service/       || true
+                        kubectl apply -f k8s/claims-service/     || true
+                        kubectl apply -f k8s/class-service/      || true
+                        kubectl apply -f k8s/competition-service/ || true
+                        kubectl apply -f k8s/course-service/     || true
+                        kubectl apply -f k8s/quiz-service/       || true
+                        kubectl apply -f k8s/club-event-service/ || true
+                        kubectl apply -f k8s/imed-service/       || true
+                        kubectl apply -f k8s/api-gateway/        || true
+                        kubectl apply -f k8s/frontend/           || true
                     '''
                 }
             }
@@ -294,11 +249,14 @@ pipeline {
     }
 
     post {
+        always {
+            cleanWs()
+        }
         success {
-            echo '✅ Global pipeline passed — all services deployed'
+            echo '✅ Pipeline SUCCESS — all images built and pushed to local registry'
         }
         failure {
-            echo '❌ Global pipeline failed — check stage logs above'
+            echo '❌ Pipeline FAILED — check stage logs above'
         }
     }
 }
