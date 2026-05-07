@@ -19,6 +19,8 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
+                // Ensure Docker socket is accessible (may need re-fix after restarts)
+                sh 'chmod 666 /var/run/docker.sock 2>/dev/null || true'
             }
         }
 
@@ -63,7 +65,8 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                        sh 'mvn sonar:sonar -pl user-service,claims-service -Dsonar.projectKey=learnivo -Dsonar.projectName="Learnivo Microservices" -Dsonar.java.binaries=**/target/classes -Dsonar.login=${SONAR_TOKEN} --batch-mode -q || true'
+                        // Run sonar from root pom with aggregate — works with multi-module
+                        sh 'mvn sonar:sonar -Dsonar.projectKey=learnivo -Dsonar.projectName="Learnivo Microservices" -Dsonar.java.binaries=**/target/classes -Dsonar.login=${SONAR_TOKEN} --batch-mode -q || true'
                     }
                 }
             }
