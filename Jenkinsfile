@@ -53,9 +53,11 @@ pipeline {
         // ── Phase 3: Unit Tests ───────────────────────────────────────────────
         stage('Unit Tests') {
             steps {
-                // Skip Spring Boot context tests that require DB/RabbitMQ/Keycloak
-                // Those are integration tests, not unit tests
-                sh 'mvn test --batch-mode -q -Dexclude="**/*ApplicationTests.java,**/*IntegrationTest.java" || true'
+                // Run only pure unit tests (no Spring context, no DB, no RabbitMQ)
+                // Exclude ApplicationTests and IntegrationTests that need infrastructure
+                sh '''mvn test --batch-mode -q \
+                    -Dsurefire.excludes="**/*ApplicationTests.class,**/*IntegrationTest*.class,**/DemoApplicationTests.class" \
+                    || true'''
             }
             post {
                 always {
