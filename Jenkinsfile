@@ -53,7 +53,9 @@ pipeline {
         // ── Phase 3: Unit Tests ───────────────────────────────────────────────
         stage('Unit Tests') {
             steps {
-                sh 'mvn test --batch-mode -q || true'
+                // Skip Spring Boot context tests that require DB/RabbitMQ/Keycloak
+                // Those are integration tests, not unit tests
+                sh 'mvn test --batch-mode -q -Dexclude="**/*ApplicationTests.java,**/*IntegrationTest.java" || true'
             }
             post {
                 always {
