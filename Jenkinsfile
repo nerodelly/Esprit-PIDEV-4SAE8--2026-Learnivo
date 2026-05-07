@@ -7,7 +7,7 @@ pipeline {
 
     environment {
         LOCAL_REGISTRY = 'localhost:5000'
-        SONAR_HOST_URL = 'http://learnivo-sonarqube:9000'
+        SONAR_HOST_URL = 'http://localhost:9000'
     }
 
     tools {
