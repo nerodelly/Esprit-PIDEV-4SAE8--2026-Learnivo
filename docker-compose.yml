@@ -89,9 +89,7 @@ services:
       - learnivo-network
 
   user-service:
-    build:
-      context: .
-      dockerfile: user-service/Dockerfile
+    image: localhost:5000/user-service:latest
     container_name: learnivo-user
     ports:
       - "8085:8085"
@@ -267,9 +265,7 @@ services:
       - learnivo-network
 
   claims-service:
-    build:
-      context: .
-      dockerfile: claims-service/Dockerfile
+    image: localhost:5000/claims-service:latest
     container_name: learnivo-claims
     ports:
       - "8089:8089"
