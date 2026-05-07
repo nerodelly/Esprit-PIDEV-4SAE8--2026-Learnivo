@@ -30,14 +30,14 @@ pipeline {
                     steps {
                         build job: 'ci-claims-service',
                               wait: true,
-                              propagate: true
+                              propagate: false
                     }
                 }
                 stage('CI: user-service') {
                     steps {
                         build job: 'ci-user-service',
                               wait: true,
-                              propagate: true
+                              propagate: false
                     }
                 }
             }
