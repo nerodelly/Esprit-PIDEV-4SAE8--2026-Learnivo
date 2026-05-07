@@ -219,6 +219,17 @@ pipeline {
 
         // ── Phase 6: Deploy to Kubernetes ─────────────────────────────────────
         stage('Deploy to Kubernetes') {
+            when {
+                // Only deploy if kubeconfig credential is configured
+                expression {
+                    try {
+                        withCredentials([file(credentialsId: 'kubeconfig', variable: 'K')]) { return true }
+                    } catch (e) {
+                        echo "⚠️  kubeconfig credential not found — skipping K8s deploy"
+                        return false
+                    }
+                }
+            }
             steps {
                 withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                     sh '''
