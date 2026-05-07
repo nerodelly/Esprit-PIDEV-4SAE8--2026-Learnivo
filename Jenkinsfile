@@ -65,8 +65,14 @@ pipeline {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                        // Run sonar from root pom with aggregate — works with multi-module
-                        sh 'mvn sonar:sonar -Dsonar.projectKey=learnivo -Dsonar.projectName="Learnivo Microservices" -Dsonar.java.binaries=**/target/classes -Dsonar.login=${SONAR_TOKEN} --batch-mode -q || true'
+                        // Analyse only user-service and claims-service compiled classes
+                        sh '''mvn sonar:sonar \
+                              -pl user-service,claims-service \
+                              -Dsonar.projectKey=learnivo \
+                              -Dsonar.projectName="Learnivo Microservices" \
+                              -Dsonar.java.binaries=target/classes \
+                              -Dsonar.login=${SONAR_TOKEN} \
+                              --batch-mode -q || true'''
                     }
                 }
             }
